@@ -25,6 +25,14 @@ var Duplex = require('stream').Duplex
       this._waitingForData = false
     }
 
+  , writeToBuffer = function (buffer, data, offset) {
+      if (typeof(data) === 'string') {
+        buffer.write(data, offset)
+      } else {
+        data.copy(buffer, offset)
+      }
+    }
+
 require('inherits')(Server, Transform)
 require('inherits')(Client, Duplex)
 
@@ -141,26 +149,13 @@ Client.prototype.batch = function (array, callback) {
       , value = obj.value
 
     buffer.writeUInt32LE(key.length, ptr)
-
     ptr += 4
-
-    if (typeof(key) === 'string') {
-      buffer.write(key, ptr)
-    } else {
-      key.copy(buffer, ptr)
-    }
-
+    writeToBuffer(buffer, key, ptr)
     ptr += key.length
 
     buffer.writeUInt32LE(value.length, ptr)
-
     ptr += 4
-
-    if (typeof(value) === 'string') {
-      buffer.write(value, ptr)
-    } else {
-      value.copy(buffer, ptr)
-    }
+    writeToBuffer(buffer, value, ptr)
     ptr += value.length
   })
 
