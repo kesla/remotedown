@@ -50,18 +50,36 @@ Client.prototype.createRpcStream = function () {
 
 // called from the client-stream
 Client.prototype._write = function (chunk, encoding, callback) {
-  var id
+  var dataLength
+    , data
+    , id
+    , isError
     , ptr = 0
 
   this._inputBuffer = this._inputBuffer ?
     Buffer.concat([ this._inputBuffer, chunk ]) : chunk
 
-  while(ptr <= this._inputBuffer.length - 4) {
-    id = this._inputBuffer.readUInt32LE(ptr)
+  // header is dataLength (UInt64LE), callback id (UInt64LE),
+  //  isError id (1 byte) and then a payload
+  while(ptr + 9 <= this._inputBuffer.length) {
+    dataLength = this._inputBuffer.readUInt32LE(ptr)
+    id = this._inputBuffer.readUInt32LE(ptr + 4)
+    isError = this._inputBuffer[ptr + 9]
 
-    this._callbacks[id]()
-    delete this._callbacks[id]
-    ptr += 4
+    if (ptr + 9 + dataLength > this._inputBuffer.length)
+      break
+
+    ptr += 9
+    data = this._inputBuffer.slice(ptr, ptr + dataLength)
+    ptr += dataLength
+
+    if (isError) {
+      this._callbacks[id](new Error(data.toString()))
+      delete this._callbacks[id]
+    } else {
+      this._callbacks[id]()
+      delete this._callbacks[id]
+    }
   }
 
   if (ptr === this._inputBuffer.length)

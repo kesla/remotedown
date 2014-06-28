@@ -11,6 +11,9 @@ var Transform = require('stream').Transform
       this._db = db
     }
 
+  , IS_ERROR_ID = new Buffer([ 1 ])
+  , IS_OK_ID = new Buffer([ 0 ])
+
 require('inherits')(Server, Transform)
 
 Server.prototype._parse = function (batch) {
@@ -68,13 +71,59 @@ Server.prototype._parse = function (batch) {
   return ids
 }
 
+Server.prototype._handleError = function (ids, err) {
+  var message = new Buffer(err.message)
+    , response = ids.reduce(function (response, id) {
+        response
+          .push(
+            numbersToBuffer.UInt32LE([
+              message.length, id
+            ])
+          )
+
+        response
+          .push(IS_ERROR_ID)
+
+        response
+          .push(
+            message
+          )
+
+        return response
+      }, [])
+
+  this.push(Buffer.concat(response))
+}
+
+Server.prototype._handleOk = function (ids) {
+  var response = ids.reduce(function (response, id) {
+        response
+          .push(
+            numbersToBuffer.UInt32LE([
+              0, id
+            ])
+          )
+
+        response
+          .push(IS_OK_ID)
+
+        return response
+      }, [])
+
+  this.push(Buffer.concat(response))
+}
+
 Server.prototype._parseAndWrite = function (callback) {
   var batch = this._db.batch()
     , ids = this._parse(batch)
     , self = this
 
-  batch.write(function () {
-    self.push(numbersToBuffer.UInt32LE(ids))
+  batch.write(function (err) {
+    if (err) {
+      self._handleError(ids, err)
+    } else {
+      self._handleOk(ids)
+    }
     callback()
   })
 }

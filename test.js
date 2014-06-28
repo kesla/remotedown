@@ -125,3 +125,31 @@ test('multiple batches directly after each other', function (t) {
 
   bufferingStream.end()
 })
+
+test('batch error handling', function (t) {
+  var serverDb = {
+        batch: function () {
+          return {
+              put: function () { return this }
+            , write: function (callback) {
+                callback(new Error('Something bad happened'))
+              }
+          }
+        }
+      }
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+
+  server
+    .pipe(client.createRpcStream())
+    .pipe(server)
+
+  client.batch()
+    .put(new Buffer('hello'), new Buffer('world'))
+    .write(function (err) {
+      t.ok(err instanceof Error)
+      if (err instanceof Error)
+        t.equal(err.message, 'Something bad happened')
+      t.end()
+    })
+})
