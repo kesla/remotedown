@@ -42,7 +42,8 @@ Server.prototype._parse = function (batch) {
 
   while(ptr < this._transformBuffer.length - 8) {
     dataLength = this._transformBuffer.readUInt32LE(ptr)
-    if (ptr + dataLength > this._transformBuffer.length) {
+    // must have space for ptr + data + header
+    if (ptr + dataLength + 8 > this._transformBuffer.length) {
       this._transformBuffer = this._transformBuffer.slice(ptr)
       return ids
     }
