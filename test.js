@@ -187,6 +187,29 @@ test('new iterator', function (t) {
   client.iterator()
 })
 
+test('end iterator', function (t) {
+  t.plan(2)
+
+  var server = remoteDOWN.server({
+        iterator: function (options) {
+          return {
+            end: function (callback) {
+              t.pass('called iterator.end()')
+              callback()
+            }
+          }
+        }
+      })
+    , client = remoteDOWN.client()
+
+  server.pipe(client.createRpcStream()).pipe(server)
+
+  client.iterator().end(function () {
+    t.pass('call callback after end')
+    t.end()
+  })
+})
+
 test('iterator', function (t) {
   setup(function (client, server, serverDb) {
     serverDb.batch(
