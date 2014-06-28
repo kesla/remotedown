@@ -16,13 +16,26 @@ var remoteDOWN = require('./remotedown')
           }
       )
     }
+  , createSplittingStream = function () {
+      return through2(function (buffer, enc, callback) {
+        for(var i = 0; i < buffer.length; ++i) {
+          this.push(buffer.slice(i, i + 1))
+        }
+
+        callback()
+      })
+    }
   , setup = function (callback) {
       var serverDb = memDOWN('/does/not/matter')
 
         , server = remoteDOWN.server(serverDb)
         , client = remoteDOWN.client()
 
-      server.pipe(client.createRpcStream()).pipe(server)
+      server
+        .pipe(createSplittingStream())
+        .pipe(client.createRpcStream())
+        .pipe(createSplittingStream())
+        .pipe(server)
 
       callback(client, server, serverDb)
     }
