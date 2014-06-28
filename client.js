@@ -52,7 +52,7 @@ Client.prototype._write = function (chunk, encoding, callback) {
 // called from the client-stream
 Client.prototype._read = function () {
   if (this._outputBuffer.length > 0) {
-    this.push(Buffer.concat(this._outputBuffer))
+    this._stream.push(Buffer.concat(this._outputBuffer))
     this._outputBuffer.length = 0
   } else {
     this._waitingForData = true
