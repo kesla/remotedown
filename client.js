@@ -1,8 +1,12 @@
-var ClientStream = require('./client-stream')
+var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
+
+  , ClientStream = require('./client-stream')
 
   , Client = function () {
       if (!(this instanceof Client))
         return new Client()
+
+      AbstractLevelDOWN.call(this, '/does/not/matter')
 
       this._nextId = 0
       this._callbacks = []
@@ -19,6 +23,8 @@ var ClientStream = require('./client-stream')
         data.copy(buffer, offset)
       }
     }
+
+require('inherits')(Client, AbstractLevelDOWN)
 
 Client.prototype.createRpcStream = function () {
   this._stream = new ClientStream(this)
@@ -59,7 +65,7 @@ Client.prototype._read = function () {
   }
 }
 
-Client.prototype.batch = function (array, callback) {
+Client.prototype._batch = function (array, options, callback) {
   var id = this._nextId++
     , dataLength = 0
     , ptr = 0
@@ -126,12 +132,12 @@ Client.prototype.batch = function (array, callback) {
   }
 }
 
-Client.prototype.del = function (key, callback) {
-  this.batch([ { key: key, type: 'del' } ], callback)
+Client.prototype._del = function (key, options, callback) {
+  this._batch([ { key: key, type: 'del' } ], options, callback)
 }
 
-Client.prototype.put = function (key, value, callback) {
-  this.batch([ { key: key, value: value, type: 'put' } ], callback)
+Client.prototype._put = function (key, value, options, callback) {
+  this._batch([ { key: key, value: value, type: 'put' } ], options, callback)
 }
 
 module.exports = Client
