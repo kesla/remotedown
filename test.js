@@ -169,3 +169,35 @@ test('batch error handling', function (t) {
       t.end()
     })
 })
+
+test('iterator', function (t) {
+  var serverDb = memDOWN('/does/not/matter')
+
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+
+  server.pipe(client.createRpcStream()).pipe(server)
+
+  serverDb.batch(
+      [
+          { key: new Buffer([ 0 ]), value: new Buffer('one'), type: 'put' }
+        , { key: new Buffer([ 1 ]), value: new Buffer('two'), type: 'put' }
+      ]
+    , function () {
+        var iterator = client.iterator()
+
+        iterator.next(function (error, key, value) {
+          t.deepEqual(key, new Buffer([ 0 ]))
+          t.deepEqual(value, new Buffer('one'))
+          iterator.next(function (err, key, value) {
+            t.deepEqual(key, new Buffer([ 1 ]))
+            t.deepEqual(value, new Buffer('two'))
+            iterator.next(function () {
+              t.equal(arguments.length, 0)
+              t.end()
+            })
+          })
+        })
+      }
+  )
+})
