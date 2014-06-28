@@ -176,6 +176,10 @@ Client.prototype.batch = function (array, callback) {
   }
 }
 
+Client.prototype.put = function (key, value, callback) {
+  this.batch([ { key: key, value: value, type: 'put' } ], callback)
+}
+
 module.exports = {
     server: Server
   , client: Client
