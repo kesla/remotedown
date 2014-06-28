@@ -5,16 +5,17 @@ var remoteDOWN = require('./remotedown')
 
   , createBufferingStream = function () {
       var array = []
-      return through2(
-          function (chunk, enc, callback) {
+        , stream = through2(function (chunk, enc, callback) {
             array.push(chunk)
             callback()
-          }
-        , function (callback) {
-            this.push(Buffer.concat(array))
-            callback()
-          }
-      )
+          })
+
+      stream.flush = function () {
+        var buffer = Buffer.concat(array)
+        stream.push(Buffer.concat(array))
+        array.length = 0
+      }
+      return stream
     }
   , createSplittingStream = function () {
       return through2(function (buffer, enc, callback) {
@@ -136,7 +137,9 @@ test('multiple batches directly after each other', function (t) {
       })
     })
 
-  bufferingStream.end()
+  setImmediate(function () {
+    bufferingStream.flush()
+  })
 })
 
 test('batch error handling', function (t) {
