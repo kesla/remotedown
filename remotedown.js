@@ -1,5 +1,5 @@
 
 module.exports = {
-    server: require('./server')
-  , client: require('./client')
+    server: require('./lib/server')
+  , client: require('./lib/client')
 }
