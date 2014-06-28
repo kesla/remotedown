@@ -1,29 +1,44 @@
 var remoteDOWN = require('./remotedown')
-  , serverDb = require('memdown')('/does/not/matter')
+  , memDOWN = require('memdown')
   , test = require('tape')
 
-  , server = remoteDOWN.server(serverDb)
-  , client = remoteDOWN.client()
-
-client.pipe(server).pipe(client)
-
-test('batch', function (t) {
-  client.batch(
-      [{ key: new Buffer('beep'), value: new Buffer('boop'), type: 'put' }]
-    , function () {
-        serverDb.get(new Buffer('beep'), function (err, value) {
-          t.deepEqual(value, new Buffer('boop'))
-          t.end()
-        })
-      }
-  )
-})
-
 test('put', function (t) {
-  client.put(new Buffer('hello'), new Buffer('world'), function () {
-    serverDb.get(new Buffer('hello'), function (err, value) {
-      t.deepEqual(value, new Buffer('world'))
+  var serverDb = require('memdown')('/does/not/matter')
+
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+
+  client.pipe(server).pipe(client)
+
+  client.put(new Buffer('beep'), new Buffer('boop'), function () {
+    serverDb.get(new Buffer('beep'), function (err, value) {
+      t.deepEqual(value, new Buffer('boop'))
       t.end()
     })
   })
+})
+
+test('batch', function (t) {
+  var serverDb = require('memdown')('/does/not/matter')
+
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+
+  client.pipe(server).pipe(client)
+
+  client.batch(
+      [
+          { key: new Buffer('beep'), value: new Buffer('boop'), type: 'put' }
+        , { key: new Buffer('bing'), value: new Buffer('bong'), type: 'put' }
+      ]
+    , function () {
+        serverDb.get(new Buffer('beep'), function (err, value) {
+          t.deepEqual(value, new Buffer('boop'))
+          serverDb.get(new Buffer('bing'), function (err, value) {
+            t.deepEqual(value, new Buffer('bong'))
+            t.end()
+          })
+        })
+      }
+  )
 })

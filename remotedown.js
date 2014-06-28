@@ -37,13 +37,23 @@ require('inherits')(Server, Transform)
 require('inherits')(Client, Duplex)
 
 Server.prototype._parse = function (batch) {
-  var ptr = 0
+  var self = this
+    , ptr = 0
     , ids = []
     , dataLength
-    , keyLength
-    , key
-    , valueLength
-    , value
+    , decodePut = function () {
+        var keyLength = self._transformBuffer.readUInt32LE(ptr)
+          , key = self._transformBuffer.slice(ptr + 4, ptr + keyLength + 4)
+          , valueLength = self._transformBuffer.readUInt32LE(ptr + keyLength + 4)
+          , value = self._transformBuffer.slice(
+                ptr + keyLength + 8
+              , ptr + keyLength + valueLength + 8
+            )
+
+        ptr += keyLength + valueLength + 8
+        batch.put(key, value)
+        dataLength -= (keyLength + valueLength + 8)
+      }
 
   while(ptr < this._transformBuffer.length - 8) {
     dataLength = this._transformBuffer.readUInt32LE(ptr)
@@ -57,16 +67,11 @@ Server.prototype._parse = function (batch) {
     ptr += 4
 
     while(dataLength > 0) {
-      keyLength = this._transformBuffer.readUInt32LE(ptr)
-      ptr += 4
-      key = this._transformBuffer.slice(ptr, ptr + keyLength)
-      ptr += keyLength
-      valueLength = this._transformBuffer.readUInt32LE(ptr)
-      ptr += 4
-      value = this._transformBuffer.slice(ptr, ptr + valueLength)
-      ptr += valueLength
-      batch.put(key, value)
-      dataLength -= (keyLength + valueLength + 8)
+      if (this._transformBuffer[ptr] === 1) {
+        ptr++
+        dataLength--
+        decodePut()
+      }
     }
   }
   this._transformBuffer = this._transformBuffer.slice(ptr)
@@ -130,11 +135,28 @@ Client.prototype.batch = function (array, callback) {
   var id = this._nextId++
     , dataLength = 0
     , ptr = 0
+    , encodePut = function (obj) {
+        var key = obj.key
+          , value = obj.value
+
+        buffer[ptr] = 1
+        ptr++
+
+        buffer.writeUInt32LE(key.length, ptr)
+        ptr += 4
+        writeToBuffer(buffer, key, ptr)
+        ptr += key.length
+
+        buffer.writeUInt32LE(value.length, ptr)
+        ptr += 4
+        writeToBuffer(buffer, value, ptr)
+        ptr += value.length
+      }
 
   this._callbacks[id] = callback
 
   array.forEach(function (obj) {
-    dataLength += obj.key.length + obj.value.length + 8
+    dataLength += obj.key.length + obj.value.length + 9
   })
 
   var buffer = new Buffer(dataLength + 8)
@@ -145,18 +167,7 @@ Client.prototype.batch = function (array, callback) {
   ptr += 4
 
   array.forEach(function (obj) {
-    var key = obj.key
-      , value = obj.value
-
-    buffer.writeUInt32LE(key.length, ptr)
-    ptr += 4
-    writeToBuffer(buffer, key, ptr)
-    ptr += key.length
-
-    buffer.writeUInt32LE(value.length, ptr)
-    ptr += 4
-    writeToBuffer(buffer, value, ptr)
-    ptr += value.length
+    encodePut(obj)
   })
 
   this._outputBuffer.push(buffer)
