@@ -3,7 +3,7 @@ var remoteDOWN = require('./remotedown')
   , test = require('tape')
 
 test('put', function (t) {
-  var serverDb = require('memdown')('/does/not/matter')
+  var serverDb = memDOWN('/does/not/matter')
 
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()
@@ -19,7 +19,7 @@ test('put', function (t) {
 })
 
 test('del', function (t) {
-  var serverDb = require('memdown')('/does/not/matter')
+  var serverDb = memDOWN('/does/not/matter')
 
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()
@@ -38,7 +38,7 @@ test('del', function (t) {
 })
 
 test('batch', function (t) {
-  var serverDb = require('memdown')('/does/not/matter')
+  var serverDb = memDOWN('/does/not/matter')
 
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()

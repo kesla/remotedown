@@ -2,6 +2,11 @@ var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
 
   , ClientStream = require('./client-stream')
 
+  , Cache = function () {
+      this.array = []
+      this.size = 0
+    }
+
   , Client = function () {
       if (!(this instanceof Client))
         return new Client()
@@ -11,7 +16,7 @@ var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
       this._nextId = 0
       this._callbacks = []
       this._inputBuffer = null
-      this._outputBuffer = []
+      this._outputBuffer = new Cache()
       this._waitingForData = false
       this._stream = null
     }
@@ -25,6 +30,18 @@ var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
     }
 
 require('inherits')(Client, AbstractLevelDOWN)
+
+Cache.prototype.push = function (buffer) {
+  this.array.push(buffer)
+  this.size += buffer.length
+}
+
+Cache.prototype.flush = function () {
+  var buffer = Buffer.concat(this.array, this.size)
+  this.array.length = 0
+  this.size = 0
+  return buffer
+}
 
 Client.prototype.createRpcStream = function () {
   this._stream = new ClientStream(this)
@@ -57,16 +74,16 @@ Client.prototype._write = function (chunk, encoding, callback) {
 
 // called from the client-stream
 Client.prototype._read = function () {
-  if (this._outputBuffer.length > 0) {
-    this._stream.push(Buffer.concat(this._outputBuffer))
-    this._outputBuffer.length = 0
+  if (this._outputBuffer.size > 0) {
+    this._stream.push(this._outputBuffer.flush())
   } else {
     this._waitingForData = true
   }
 }
 
 Client.prototype._batch = function (array, options, callback) {
-  var id = this._nextId++
+  var self = this
+    , id = this._nextId++
     , dataLength = 0
     , ptr = 0
     , encodePut = function (obj) {
@@ -88,6 +105,7 @@ Client.prototype._batch = function (array, options, callback) {
       }
     , encodeDel = function (obj) {
         var key = obj.key
+
         buffer[ptr] = 0
         ptr++
 
@@ -96,18 +114,22 @@ Client.prototype._batch = function (array, options, callback) {
         writeToBuffer(buffer, key, ptr)
         ptr += key.length
       }
+    , dataLength = array.reduce(
+          function (length, obj) {
+            if (obj.type === 'put')
+              length += obj.key.length + obj.value.length + 9
+            if (obj.type === 'del')
+              length += obj.key.length + 5
+            return length
+          }
+        , 0
+      )
+    // need room for the header
+    , buffer = new Buffer(dataLength + 8)
 
   this._callbacks[id] = callback
 
-  array.forEach(function (obj) {
-    if (obj.type === 'put')
-      dataLength += obj.key.length + obj.value.length + 9
-    if (obj.type === 'del')
-      dataLength += obj.key.length + 5
-  })
-
-  var buffer = new Buffer(dataLength + 8)
-
+  // write the header
   buffer.writeUInt32LE(dataLength, ptr)
   ptr += 4
   buffer.writeUInt32LE(id, ptr)
@@ -122,12 +144,8 @@ Client.prototype._batch = function (array, options, callback) {
 
   this._outputBuffer.push(buffer)
 
-
   if (this._waitingForData) {
-    var buf = Buffer.concat(this._outputBuffer)
-    this._outputBuffer.length = 0
-
-    if (!this._stream.push(buf))
+    if (!this._stream.push(this._outputBuffer.flush()))
       this._waitingForData = false
   }
 }
