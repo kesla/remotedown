@@ -1,6 +1,21 @@
 var remoteDOWN = require('./remotedown')
   , memDOWN = require('memdown')
   , test = require('tape')
+  , through2 = require('through2')
+
+  , createBufferingStream = function () {
+      var array = []
+      return through2(
+          function (chunk, enc, callback) {
+            array.push(chunk)
+            callback()
+          }
+        , function (callback) {
+            this.push(Buffer.concat(array))
+            callback()
+          }
+      )
+    }
 
 test('put', function (t) {
   var serverDb = memDOWN('/does/not/matter')
@@ -73,4 +88,46 @@ test('batch', function (t) {
         })
       }
   )
+})
+
+test('multiple batches directly after each other', function (t) {
+  t.plan(3)
+
+  var serverDb = memDOWN('/does/not/matter')
+
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+    , array = []
+    , bufferingStream = createBufferingStream()
+
+  server
+    .pipe(client.createRpcStream())
+    .pipe(bufferingStream)
+    .pipe(server)
+
+  client.batch()
+    .put(new Buffer('beep'), new Buffer('boop'))
+    .write(function () {
+      serverDb.get(new Buffer('beep'), function (err, value) {
+        t.deepEqual(value, new Buffer('boop'))
+      })
+    })
+
+  client.batch()
+    .put(new Buffer('hello'), new Buffer('world'))
+    .write(function () {
+      serverDb.get(new Buffer('hello'), function (err, value) {
+        t.deepEqual(value, new Buffer('world'))
+      })
+    })
+
+  client.batch()
+    .put(new Buffer('foo'), new Buffer('bar'))
+    .write(function () {
+      serverDb.get(new Buffer('foo'), function (err, value) {
+        t.deepEqual(value, new Buffer('bar'))
+      })
+    })
+
+  bufferingStream.end()
 })
