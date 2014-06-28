@@ -1,0 +1,30 @@
+{
+  "name": "remotedown",
+  "version": "0.0.0",
+  "description": "A leveldown-compatible library to connect to a remote leveldown",
+  "main": "remotedown.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kesla/remotedown.git"
+  },
+  "keywords": [
+    "leveldown",
+    "remote"
+  ],
+  "author": "David Björklund <david.bjorklund@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kesla/remotedown/issues"
+  },
+  "homepage": "https://github.com/kesla/remotedown",
+  "dependencies": {
+    "inherits": "^2.0.1",
+    "numbers-to-buffer": "^1.0.1"
+  },
+  "devDependencies": {
+    "memdown": "^0.10.2"
+  }
+}
