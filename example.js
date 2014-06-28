@@ -9,7 +9,7 @@ client.pipe(server).pipe(client)
 client.batch(
     [{ key: new Buffer('beep'), value: new Buffer('boop'), type: 'put' }]
   , function () {
-      serverDb.get(new Buffer('beep'), { asBuffer: false }, function (err, value) {
+      serverDb.get(new Buffer('beep'), function (err, value) {
         console.log('value saved in server:', value.toString())
       })
     }
