@@ -170,6 +170,24 @@ test('batch error handling', function (t) {
     })
 })
 
+test('new iterator', function (t) {
+  var server = remoteDOWN.server({
+        iterator: function (options) {
+          t.deepEqual(
+              options
+            , { reverse: false }
+          )
+          t.end()
+        }
+      })
+    , client = remoteDOWN.client()
+
+  server.pipe(client.createRpcStream()).pipe(server)
+
+  client.iterator()
+})
+
+return
 test('iterator', function (t) {
   var serverDb = memDOWN('/does/not/matter')
 
