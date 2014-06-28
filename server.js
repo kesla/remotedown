@@ -57,8 +57,7 @@ Server.prototype._parse = function (batch) {
         ptr++
         dataLength--
         decodePut()
-      }
-      if (this._transformBuffer[ptr] === 0) {
+      } else if (this._transformBuffer[ptr] === 0) {
         ptr++
         dataLength--
         decodeDel()
