@@ -4,7 +4,7 @@ var remoteDOWN = require('./remotedown')
   , server = remoteDOWN.server(serverDb)
   , client = remoteDOWN.client()
 
-client.pipe(server).pipe(client)
+server.pipe(client.createRpcStream()).pipe(server)
 
 client.batch(
     [{ key: new Buffer('beep'), value: new Buffer('boop'), type: 'put' }]

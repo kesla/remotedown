@@ -1,16 +1,15 @@
-var Duplex = require('stream').Duplex
+var ClientStream = require('./client-stream')
 
   , Client = function () {
       if (!(this instanceof Client))
         return new Client()
-
-      Duplex.call(this)
 
       this._nextId = 0
       this._callbacks = []
       this._inputBuffer = null
       this._outputBuffer = []
       this._waitingForData = false
+      this._stream = null
     }
 
   , writeToBuffer = function (buffer, data, offset) {
@@ -21,8 +20,12 @@ var Duplex = require('stream').Duplex
       }
     }
 
-require('inherits')(Client, Duplex)
+Client.prototype.createRpcStream = function () {
+  this._stream = new ClientStream(this)
+  return this._stream
+}
 
+// called from the client-stream
 Client.prototype._write = function (chunk, encoding, callback) {
   var id
     , ptr = 0
@@ -46,6 +49,7 @@ Client.prototype._write = function (chunk, encoding, callback) {
   callback()
 }
 
+// called from the client-stream
 Client.prototype._read = function () {
   if (this._outputBuffer.length > 0) {
     this.push(Buffer.concat(this._outputBuffer))
@@ -117,7 +121,7 @@ Client.prototype.batch = function (array, callback) {
     var buf = Buffer.concat(this._outputBuffer)
     this._outputBuffer.length = 0
 
-    if (!this.push(buf))
+    if (!this._stream.push(buf))
       this._waitingForData = false
   }
 }

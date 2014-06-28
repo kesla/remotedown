@@ -1,4 +1,4 @@
-# remotedown
+# remotedown[![build status](https://secure.travis-ci.org/kesla/remotedown.svg)](http://travis-ci.org/kesla/remotedown)
 
 A leveldown-compatible library to connect to a remote leveldown
 
@@ -27,7 +27,7 @@ var remoteDOWN = require('./remotedown')
   , server = remoteDOWN.server(serverDb)
   , client = remoteDOWN.client()
 
-client.pipe(server).pipe(client)
+server.pipe(client.createRpcStream()).pipe(server)
 
 client.batch(
     [{ key: new Buffer('beep'), value: new Buffer('boop'), type: 'put' }]

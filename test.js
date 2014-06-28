@@ -8,7 +8,7 @@ test('put', function (t) {
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()
 
-  client.pipe(server).pipe(client)
+  server.pipe(client.createRpcStream()).pipe(server)
 
   client.put(new Buffer('beep'), new Buffer('boop'), function () {
     serverDb.get(new Buffer('beep'), function (err, value) {
@@ -24,7 +24,7 @@ test('del', function (t) {
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()
 
-  client.pipe(server).pipe(client)
+  server.pipe(client.createRpcStream()).pipe(server)
 
   serverDb.put(new Buffer('beep'), new Buffer('boop'), function () {
     client.del(new Buffer('beep'), function () {
@@ -43,7 +43,7 @@ test('batch', function (t) {
     , server = remoteDOWN.server(serverDb)
     , client = remoteDOWN.client()
 
-  client.pipe(server).pipe(client)
+  server.pipe(client.createRpcStream()).pipe(server)
 
   client.batch(
       [
