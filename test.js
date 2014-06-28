@@ -18,6 +18,25 @@ test('put', function (t) {
   })
 })
 
+test('del', function (t) {
+  var serverDb = require('memdown')('/does/not/matter')
+
+    , server = remoteDOWN.server(serverDb)
+    , client = remoteDOWN.client()
+
+  client.pipe(server).pipe(client)
+
+  serverDb.put(new Buffer('beep'), new Buffer('boop'), function () {
+    client.del(new Buffer('beep'), function () {
+      serverDb.get(new Buffer('beep'), function (err, value) {
+        t.deepEqual(err.message, 'NotFound')
+        t.equal(value, undefined)
+        t.end()
+      })
+    })
+  })
+})
+
 test('batch', function (t) {
   var serverDb = require('memdown')('/does/not/matter')
 
@@ -35,8 +54,21 @@ test('batch', function (t) {
         serverDb.get(new Buffer('beep'), function (err, value) {
           t.deepEqual(value, new Buffer('boop'))
           serverDb.get(new Buffer('bing'), function (err, value) {
-            t.deepEqual(value, new Buffer('bong'))
-            t.end()
+            client.batch(
+                [
+                    { key: new Buffer('beep'), type: 'del' }
+                  , { key: new Buffer('bing'), type: 'del' }
+                ]
+              , function () {
+                  serverDb.get(new Buffer('beep'), function (err, value) {
+                    t.deepEqual(err.message, 'NotFound')
+                    serverDb.get(new Buffer('bing'), function (err, value) {
+                      t.deepEqual(err.message, 'NotFound')
+                      t.end()
+                    })
+                  })
+                }
+            )
           })
         })
       }

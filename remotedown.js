@@ -54,6 +54,14 @@ Server.prototype._parse = function (batch) {
         batch.put(key, value)
         dataLength -= (keyLength + valueLength + 8)
       }
+    , decodeDel = function () {
+        var keyLength = self._transformBuffer.readUInt32LE(ptr)
+          , key = self._transformBuffer.slice(ptr + 4, ptr + keyLength + 4)
+
+        ptr += keyLength + 4
+        batch.del(key)
+        dataLength -= (keyLength + 4)
+      }
 
   while(ptr < this._transformBuffer.length - 8) {
     dataLength = this._transformBuffer.readUInt32LE(ptr)
@@ -71,6 +79,11 @@ Server.prototype._parse = function (batch) {
         ptr++
         dataLength--
         decodePut()
+      }
+      if (this._transformBuffer[ptr] === 0) {
+        ptr++
+        dataLength--
+        decodeDel()
       }
     }
   }
@@ -152,11 +165,24 @@ Client.prototype.batch = function (array, callback) {
         writeToBuffer(buffer, value, ptr)
         ptr += value.length
       }
+    , encodeDel = function (obj) {
+        var key = obj.key
+        buffer[ptr] = 0
+        ptr++
+
+        buffer.writeUInt32LE(key.length, ptr)
+        ptr += 4
+        writeToBuffer(buffer, key, ptr)
+        ptr += key.length
+      }
 
   this._callbacks[id] = callback
 
   array.forEach(function (obj) {
-    dataLength += obj.key.length + obj.value.length + 9
+    if (obj.type === 'put')
+      dataLength += obj.key.length + obj.value.length + 9
+    if (obj.type === 'del')
+      dataLength += obj.key.length + 5
   })
 
   var buffer = new Buffer(dataLength + 8)
@@ -167,7 +193,10 @@ Client.prototype.batch = function (array, callback) {
   ptr += 4
 
   array.forEach(function (obj) {
-    encodePut(obj)
+    if (obj.type === 'put')
+      encodePut(obj)
+    if (obj.type === 'del')
+      encodeDel(obj)
   })
 
   this._outputBuffer.push(buffer)
@@ -180,6 +209,10 @@ Client.prototype.batch = function (array, callback) {
     if (!this.push(buf))
       this._waitingForData = false
   }
+}
+
+Client.prototype.del = function (key, callback) {
+  this.batch([ { key: key, type: 'del' } ], callback)
 }
 
 Client.prototype.put = function (key, value, callback) {
