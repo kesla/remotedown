@@ -1,8 +1,15 @@
 var remoteDOWN = require('./remotedown')
-  , memDOWN = require('memdown')
+  , leveldown = require('leveldown')
   , test = require('tape')
   , through2 = require('through2')
 
+  , leveldownFactory = function (name) {
+
+      var dir = require('os').tmpdir() + name
+      require('rimraf').sync(dir)
+
+      return require('leveldown')(dir)
+    }
   , createBufferingStream = function () {
       var array = []
         , stream = through2(function (chunk, enc, callback) {
@@ -26,19 +33,27 @@ var remoteDOWN = require('./remotedown')
         callback()
       })
     }
+  , idx = 0
+  , newDb = function (callback) {
+      var db = leveldownFactory(idx++)
+
+      db.open(function (err) {
+        callback(null, db)
+      })
+    }
   , setup = function (callback) {
-      var serverDb = memDOWN('/does/not/matter')
+      newDb(function (err, serverDb) {
+        var server = remoteDOWN.server(serverDb)
+          , client = remoteDOWN.client()
 
-        , server = remoteDOWN.server(serverDb)
-        , client = remoteDOWN.client()
+        server
+          .pipe(createSplittingStream())
+          .pipe(client.createRpcStream())
+          .pipe(createSplittingStream())
+          .pipe(server)
 
-      server
-        .pipe(createSplittingStream())
-        .pipe(client.createRpcStream())
-        .pipe(createSplittingStream())
-        .pipe(server)
-
-      callback(client, server, serverDb)
+        callback(client, server, serverDb)
+      })
     }
 
 test('put', function (t) {
@@ -57,7 +72,7 @@ test('del', function (t) {
     serverDb.put(new Buffer('beep'), new Buffer('boop'), function () {
       client.del(new Buffer('beep'), function () {
         serverDb.get(new Buffer('beep'), function (err, value) {
-          t.deepEqual(err.message, 'NotFound')
+          t.deepEqual(err.message, 'NotFound: ')
           t.equal(value, undefined)
           t.end()
         })
@@ -84,9 +99,9 @@ test('batch', function (t) {
                   ]
                 , function () {
                     serverDb.get(new Buffer('beep'), function (err, value) {
-                      t.deepEqual(err.message, 'NotFound')
+                      t.deepEqual(err.message, 'NotFound: ')
                       serverDb.get(new Buffer('bing'), function (err, value) {
-                        t.deepEqual(err.message, 'NotFound')
+                        t.deepEqual(err.message, 'NotFound: ')
                         t.end()
                       })
                     })
@@ -102,43 +117,43 @@ test('batch', function (t) {
 test('multiple batches directly after each other', function (t) {
   t.plan(3)
 
-  var serverDb = memDOWN('/does/not/matter')
+  newDb(function (err, serverDb) {
+    var server = remoteDOWN.server(serverDb)
+      , client = remoteDOWN.client()
+      , bufferingStream = createBufferingStream()
 
-    , server = remoteDOWN.server(serverDb)
-    , client = remoteDOWN.client()
-    , bufferingStream = createBufferingStream()
+    server
+      .pipe(client.createRpcStream())
+      .pipe(bufferingStream)
+      .pipe(server)
 
-  server
-    .pipe(client.createRpcStream())
-    .pipe(bufferingStream)
-    .pipe(server)
-
-  client.batch()
-    .put(new Buffer('beep'), new Buffer('boop'))
-    .write(function () {
-      serverDb.get(new Buffer('beep'), function (err, value) {
-        t.deepEqual(value, new Buffer('boop'))
+    client.batch()
+      .put(new Buffer('beep'), new Buffer('boop'))
+      .write(function () {
+        serverDb.get(new Buffer('beep'), function (err, value) {
+          t.deepEqual(value, new Buffer('boop'))
+        })
       })
-    })
 
-  client.batch()
-    .put(new Buffer('hello'), new Buffer('world'))
-    .write(function () {
-      serverDb.get(new Buffer('hello'), function (err, value) {
-        t.deepEqual(value, new Buffer('world'))
+    client.batch()
+      .put(new Buffer('hello'), new Buffer('world'))
+      .write(function () {
+        serverDb.get(new Buffer('hello'), function (err, value) {
+          t.deepEqual(value, new Buffer('world'))
+        })
       })
-    })
 
-  client.batch()
-    .put(new Buffer('foo'), new Buffer('bar'))
-    .write(function () {
-      serverDb.get(new Buffer('foo'), function (err, value) {
-        t.deepEqual(value, new Buffer('bar'))
+    client.batch()
+      .put(new Buffer('foo'), new Buffer('bar'))
+      .write(function () {
+        serverDb.get(new Buffer('foo'), function (err, value) {
+          t.deepEqual(value, new Buffer('bar'))
+        })
       })
-    })
 
-  setImmediate(function () {
-    bufferingStream.flush()
+    setImmediate(function () {
+      bufferingStream.flush()
+    })
   })
 })
 
