@@ -310,3 +310,20 @@ test('get() none existing', function (t) {
     })
   })
 })
+
+test('multiple get()', function (t) {
+  t.plan(10)
+  setup(function (client, server, serverDb) {
+    serverDb.batch(
+        [
+            { key: new Buffer('0'), value: new Buffer('one'), type: 'put' }
+        ]
+      , function () {
+          for(var i = 0; i < 10; ++i)
+            client.get(new Buffer('0'), function (err, value) {
+              t.deepEqual(value, new Buffer('one'))
+            })
+        }
+    )
+  })
+})
