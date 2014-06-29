@@ -1,7 +1,7 @@
-var remoteDOWN = require('./remotedown')
+var remoteDOWN = require('../remotedown')
+  , leveldown = require('./common').leveldown
   , test = require('tape')
   , through2 = require('through2')
-  , leveldown = require(process.env.LEVELDOWN || 'leveldown')
 
   , createBufferingStream = function () {
       var array = []
