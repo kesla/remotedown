@@ -24,6 +24,8 @@ var through2 = require('through2')
             .pipe(createSplittingStream())
             .pipe(server)
 
+          client.open = server.open.bind(server)
+
           return client
         }
     }
