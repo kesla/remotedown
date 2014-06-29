@@ -1,18 +1,24 @@
 var levelup = require('levelup')
-  , memdown = require('memdown')
+  , leveldown = require('leveldown')
 
   , remotedown = require('../remotedown')
   , length = 1000
 
+  , dir = __dirname + '/test-db'
+
   , setup = function (test, callback) {
-      var server = remotedown.server(memdown())
-        , client = remotedown.client()
-        , db = levelup(function () { return client })
+      leveldown.destroy(dir, function () {
+        var server = remotedown.server(leveldown(dir))
+          , client = remotedown.client()
+          , db = levelup(function () { return client })
 
-      server.pipe(client.createRpcStream()).pipe(server)
+        server.pipe(client.createRpcStream()).pipe(server)
 
-      test.setup(db, length, function () {
-        callback(null, db)
+        server.open(function () {
+          test.setup(db, length, function () {
+            callback(null, db)
+          })
+        })
       })
     }
   , run = function (name) {
@@ -28,8 +34,8 @@ var levelup = require('levelup')
 
               if (diff > 3000)
                 console.log(
-                    '%s ran for %sms %sops/sec (%s runs sampled)'
-                  , name, diff, count/(diff/1000), count
+                    '%s ran for %sms %s opts/sec (%s runs sampled)'
+                  , name, diff, Math.round(count/(diff/1000)), count
                 )
               else
                 test(db, length, callback)
