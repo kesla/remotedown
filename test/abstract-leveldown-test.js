@@ -10,13 +10,13 @@ var test       = require('tape')
 // require('abstract-leveldown/abstract/open-test').args(remoteDOWN, test, testCommon)
 // require('abstract-leveldown/abstract/open-test').open(remoteDOWN, test, testCommon)
 
-// require('abstract-leveldown/abstract/del-test').all(remoteDOWN, test, testCommon)
+require('abstract-leveldown/abstract/del-test').all(remoteDOWN, test, testCommon)
 
-// require('abstract-leveldown/abstract/get-test').all(remoteDOWN, test, testCommon)
+require('abstract-leveldown/abstract/get-test').all(remoteDOWN, test, testCommon)
 
-// require('abstract-leveldown/abstract/put-test').all(remoteDOWN, test, testCommon)
+require('abstract-leveldown/abstract/put-test').all(remoteDOWN, test, testCommon)
 
-// require('abstract-leveldown/abstract/put-get-del-test').all(remoteDOWN, test, testCommon, testBuffer)
+require('abstract-leveldown/abstract/put-get-del-test').all(remoteDOWN, test, testCommon, testBuffer)
 
 require('abstract-leveldown/abstract/batch-test').all(remoteDOWN, test, testCommon)
 // require('abstract-leveldown/abstract/chained-batch-test').all(remoteDOWN, test, testCommon)
