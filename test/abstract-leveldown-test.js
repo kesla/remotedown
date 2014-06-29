@@ -23,6 +23,6 @@ require('abstract-leveldown/abstract/batch-test').all(remoteDOWN, test, testComm
 
 // require('abstract-leveldown/abstract/close-test').close(remoteDOWN, test, testCommon)
 
-// require('abstract-leveldown/abstract/iterator-test').all(remoteDOWN, test, testCommon)
+require('abstract-leveldown/abstract/iterator-test').all(remoteDOWN, test, testCommon)
 
 // require('abstract-leveldown/abstract/ranges-test').all(remoteDOWN, test, testCommon)
