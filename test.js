@@ -1,15 +1,8 @@
 var remoteDOWN = require('./remotedown')
-  , leveldown = require('leveldown')
   , test = require('tape')
   , through2 = require('through2')
+  , leveldown = require(process.env.LEVELDOWN || 'leveldown')
 
-  , leveldownFactory = function (name) {
-
-      var dir = require('os').tmpdir() + name
-      require('rimraf').sync(dir)
-
-      return require('leveldown')(dir)
-    }
   , createBufferingStream = function () {
       var array = []
         , stream = through2(function (chunk, enc, callback) {
@@ -35,10 +28,21 @@ var remoteDOWN = require('./remotedown')
     }
   , idx = 0
   , newDb = function (callback) {
-      var db = leveldownFactory(idx++)
+      var dir = require('os').tmpdir() + 'remotedown-test-' + idx++
+        , destroy = function (dir, callback) {
+            if (!leveldown.destroy)
+              return callback()
+            else
+              leveldown.destroy(dir, callback)
+          }
 
-      db.open(function (err) {
-        callback(null, db)
+      destroy(dir, function () {
+        var db = leveldown(dir)
+
+        db.open({ errorIfExists: true }, function (err) {
+          if (err) throw err
+          callback(err, db)
+        })
       })
     }
   , setup = function (callback) {
@@ -72,7 +76,7 @@ test('del', function (t) {
     serverDb.put(new Buffer('beep'), new Buffer('boop'), function () {
       client.del(new Buffer('beep'), function () {
         serverDb.get(new Buffer('beep'), function (err, value) {
-          t.deepEqual(err.message, 'NotFound: ')
+          t.equal(err.message.slice(0, 8), 'NotFound')
           t.equal(value, undefined)
           t.end()
         })
@@ -99,9 +103,9 @@ test('batch', function (t) {
                   ]
                 , function () {
                     serverDb.get(new Buffer('beep'), function (err, value) {
-                      t.deepEqual(err.message, 'NotFound: ')
+                      t.equal(err.message.slice(0, 8), 'NotFound')
                       serverDb.get(new Buffer('bing'), function (err, value) {
-                        t.deepEqual(err.message, 'NotFound: ')
+                        t.equal(err.message.slice(0, 8), 'NotFound')
                         t.end()
                       })
                     })
