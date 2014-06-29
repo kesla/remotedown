@@ -4,7 +4,7 @@
   "description": "A leveldown-compatible library to connect to a remote leveldown",
   "main": "remotedown.js",
   "scripts": {
-    "test": "tape test.js memdown"
+    "test": "LEVELDOWN=memdown tape test.js memdown"
   },
   "repository": {
     "type": "git",
