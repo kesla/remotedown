@@ -1,0 +1,1 @@
+require('./run-test')('read-stream')
