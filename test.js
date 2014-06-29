@@ -251,3 +251,33 @@ test('iterator', function (t) {
     )
   })
 })
+
+test('multiple iterators', function (t) {
+  setup(function (client, server, serverDb) {
+    serverDb.batch(
+        [
+            { key: new Buffer('0'), value: new Buffer('one'), type: 'put' }
+        ]
+      , function () {
+          var iterator = client.iterator()
+          iterator.next(function (error, key, value) {
+            t.deepEqual(key, new Buffer('0'))
+            t.deepEqual(value, new Buffer('one'))
+            iterator.end(function () {
+              t.equal(arguments.length, 0)
+
+              var iterator2 = client.iterator()
+              iterator2.next(function (error, key, value) {
+                t.deepEqual(key, new Buffer('0'))
+                t.deepEqual(value, new Buffer('one'))
+                iterator2.end(function () {
+                  t.equal(arguments.length, 0)
+                  t.end()
+                })
+              })
+            })
+          })
+        }
+    )
+  })
+})
