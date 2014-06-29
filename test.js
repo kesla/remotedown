@@ -285,3 +285,28 @@ test('multiple iterators', function (t) {
     )
   })
 })
+
+test('get() existing', function (t) {
+  setup(function (client, server, serverDb) {
+    serverDb.batch(
+        [
+            { key: new Buffer('0'), value: new Buffer('one'), type: 'put' }
+        ]
+      , function () {
+          client.get(new Buffer('0'), function (err, value) {
+            t.deepEqual(value, new Buffer('one'))
+            t.end()
+          })
+        }
+    )
+  })
+})
+
+test('get() none existing', function (t) {
+  setup(function (client, server, serverDb) {
+    client.get(new Buffer('beep boop'), function (err, value) {
+      t.equal(err.message.slice(0, 8), 'NotFound')
+      t.end()
+    })
+  })
+})
