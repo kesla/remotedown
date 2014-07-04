@@ -1,6 +1,6 @@
 {
   "name": "remotedown",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "A leveldown-compatible library to connect to a remote leveldown",
   "main": "remotedown.js",
   "scripts": {
