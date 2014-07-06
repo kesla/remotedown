@@ -1,5 +1,6 @@
 {
-  "devDependencies": {
+  "dependencies": {
+    "bytes": "^1.0.0",
     "level-benchmarks": "^0.3.2",
     "levelup": "^0.18.5",
     "multilevel": "^6.0.0"
