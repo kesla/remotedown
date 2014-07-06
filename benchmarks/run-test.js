@@ -10,13 +10,21 @@ var levelup = require('levelup')
       leveldown.destroy(dir, function () {
         var server = remotedown.server(leveldown(dir))
           , client = remotedown.client()
+          , clientStream = client.createRpcStream()
           , db = levelup(function () { return client })
+          , streamCount = {
+                client: 0
+              , server: 0
+            }
 
-        server.pipe(client.createRpcStream()).pipe(server)
+        server.pipe(clientStream).pipe(server)
+
+        server.on('data', function (chunk) { streamCount.server += chunk.length })
+        clientStream.on('data', function (chunk) { streamCount.client += chunk.length })
 
         server.open(function () {
           test.setup(db, length, function () {
-            callback(null, db)
+            callback(null, db, streamCount)
           })
         })
       })
@@ -24,21 +32,27 @@ var levelup = require('levelup')
   , run = function (name) {
       var test = require('level-benchmarks/tests/' + name)
 
-      setup(test, function (err, db) {
+      setup(test, function (err, db, streamCount) {
         var start = Date.now()
           , count = 0
           , callback = function () {
               count += 1
 
-              var diff = Date.now() - start
+              var timeDiff = Date.now() - start
 
-              if (diff > 3000)
+              if (timeDiff > 3000) {
                 console.log(
                     '%s ran for %sms %s opts/sec (%s runs sampled)'
-                  , name, diff, Math.round(count/(diff/1000)), count
+                  , name, timeDiff, Math.round(count/(timeDiff/1000)), count
                 )
-              else
+                console.log(
+                    'traffic %s bytes from server %s bytes from client'
+                  , Math.round(streamCount.server / count)
+                  , Math.round(streamCount.client / count)
+                )
+              } else {
                 test(db, length, callback)
+              }
             }
 
         test(db, length, callback)
