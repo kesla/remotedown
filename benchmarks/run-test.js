@@ -6,6 +6,10 @@ var levelup = require('levelup')
 
   , dir = __dirname + '/test-db'
 
+  , round = function (num) {
+      return Math.round(num * 100) / 100;
+    }
+
   , setup = function (test, callback) {
       leveldown.destroy(dir, function () {
         var server = remotedown.server(leveldown(dir))
@@ -43,7 +47,7 @@ var levelup = require('levelup')
               if (timeDiff > 3000) {
                 console.log(
                     '%s ran for %sms %s opts/sec (%s runs sampled)'
-                  , name, timeDiff, Math.round(count/(timeDiff/1000)), count
+                  , name, timeDiff, round(count/(timeDiff/1000)), count
                 )
                 console.log(
                     'traffic %s bytes from server %s bytes from client'
