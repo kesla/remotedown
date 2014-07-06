@@ -1,0 +1,9 @@
+{
+  "batch": 100,
+  "newIterator": 101,
+  "iteratorNext": 102,
+  "iteratorEnd": 103,
+  "get": 104,
+  "okResponse": 200,
+  "errorResponse": 201
+}
