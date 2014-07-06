@@ -22,6 +22,7 @@
   "homepage": "https://github.com/kesla/remotedown",
   "dependencies": {
     "abstract-leveldown": "^0.12.3",
+    "buffered-transform": "^1.0.0",
     "inherits": "^2.0.1",
     "json-buffer": "^2.0.9",
     "numbers-to-buffer": "^1.0.1"
